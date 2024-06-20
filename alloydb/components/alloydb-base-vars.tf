@@ -1,6 +1,11 @@
-variable "gcp_project_id" {
+variable "demo_project_id" {
   type        = string
-  description = "Your Google Cloud Project ID"
+  description = "New Cloud Project ID for this demo. Choose a unique ID (letters, numbers, hyphens)"
+}
+
+variable "billing_account_id" {
+  type        = string
+  description = "Billing account id associated with this project"
 }
 
 variable "region" {

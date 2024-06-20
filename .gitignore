@@ -8,3 +8,4 @@
 *.tfplan.*
 crash.log
 crash.*.log
+alloydb/deployments

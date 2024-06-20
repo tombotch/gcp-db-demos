@@ -107,6 +107,13 @@ resource "google_alloydb_cluster" "alloydb_cluster" {
   }
 }
 
+#there were issues with provisioning primary too soon
+resource "time_sleep" "wait_for_network" {
+  create_duration = "30s"
+
+  depends_on = [google_service_networking_connection.private_service_access]
+}
+
 # AlloyDB Instance
 resource "google_alloydb_instance" "primary_instance" {
   cluster     = google_alloydb_cluster.alloydb_cluster.name
@@ -115,6 +122,8 @@ resource "google_alloydb_instance" "primary_instance" {
   machine_config {
     cpu_count = 2
   }
+  depends_on = [time_sleep.wait_for_network]
+
 }
 
 # Compute Engine VM
@@ -144,6 +153,8 @@ resource "google_compute_instance" "alloydb-client" {
     enable_vtpm                 = true
   }
 
+  depends_on = [ google_alloydb_instance.primary_instance ]
+
 }
 
 resource "time_sleep" "wait_for_vm_boot" {
@@ -156,6 +167,23 @@ resource "null_resource" "install_postgresql_client" {
   depends_on = [time_sleep.wait_for_vm_boot]
 
   provisioner "local-exec" {
-    command = "gcloud compute ssh alloydb-client --zone=europe-west3-a --tunnel-through-iap --command='sudo apt install postgresql-client -y'"
+    command = <<-EOT
+      gcloud compute ssh alloydb-client --zone=${var.region}-a --tunnel-through-iap --command='touch ~/.bashrc &&
+      sudo apt install postgresql-client -y &&
+      echo "export PROJECT_ID=\${var.gcp_project_id}" >> ~/.bashrc &&
+      echo "export REGION=\${var.region}" >> ~/.bashrc &&
+      echo "export ADBCLUSTER=\${var.alloydb_cluster_name}" >> ~/.bashrc &&
+      echo "export PGHOST=\$(gcloud alloydb instances describe ${var.alloydb_primary_name} --cluster=\$ADBCLUSTER --region=\$REGION --format=\"value(ipAddress)\")" >> ~/.bashrc &&
+      echo "export PGUSER=postgres" >> ~/.bashrc'
+    EOT
   }
+}
+
+resource "null_resource" "user_action_gcloud_login" {
+  depends_on = [null_resource.install_postgresql_client]
+
+  provisioner "local-exec" {
+    command = "rm /tmp/ididit; echo 'IMPORTANT!\nPlease follow these steps:\n-navigate to compute engine\n-find alloydb-client\n-connect using ssh\n-run gcloud auth login in the ssh session and follow the instructions\n-ONCE YOU HAVE COMPLETED THE STEPS:\n-open another cloud shell instance\n-execute touch /tmp/ididit in that shell\n-return here to proceed\n\nif you press enter earlier, following steps are likely to fail'; while ! test -f /tmp/ididit; do sleep 1; done"  
+  }
+
 }
