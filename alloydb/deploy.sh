@@ -4,6 +4,8 @@ TF_DIR="./tf"
 COMPONENTS_DIR="./components"
 CORE_COMPONENTS_DIR="../$COMPONENTS_DIR"
 DEMO_NAME="$1"
+CONFIG_FILE="config.sh"
+
 mkdir -p $TF_DIR
 
 # Check if the current state exists
@@ -13,17 +15,15 @@ fi
 
 CURRENT_STATE=$(cat ".current_state")
 
-declare -A VALID_TRANSITIONS=(
-    ["clean,test-min"]="true"
-    ["clean,alloydb-base"]="true"
-    ["clean,cymbal-air"]=true
-    ["test-min,clean"]="true"
-    ["alloydb-base,clean"]="true"
-    ["alloydb-base,cymbal-air"]="true"
-    ["cymbal-air,clean"]="true"
-    ["cymbal-air-base,cymbal-air"]="true"
-    ["cymbal-air-base,clean"]="true"
+LANDING_ZONE_FILES=(
+    "$CORE_COMPONENTS_DIR/00-landing-zone.tf"
+    "$CORE_COMPONENTS_DIR/01-landing-zone-network.tf"
+    "$CORE_COMPONENTS_DIR/02-landing-zone-apis.tf"
+    "$CORE_COMPONENTS_DIR/09-landing-zone-vars.tf"
 )
+
+#Source definitions from config
+source <(awk '/#BEGIN_DEFINITIONS/,/#END_DEFINITIONS/' $CONFIG_FILE) 
 
 clean_up() {
     rm -f ${TF_DIR}/*.tf
@@ -46,6 +46,7 @@ if [[ $DEMO_NAME == "detach" ]]; then
     sed -i 's/COMPONENTS_DIR=".\/components"/COMPONENTS_DIR="..\/..\/components"/' ${NEW_DIR}/deploy.sh
     cp store-vars.sh ${NEW_DIR}/ || true
     sed -i 's/TF_DIR=".\/tf"/TF_DIR="."/' ${NEW_DIR}/store-vars.sh
+    cp config.sh ${NEW_DIR}/ || true
     exit 0
 fi
 
@@ -59,24 +60,9 @@ if [[ $CURRENT_STATE == "dirty" ]]; then
     exit 1
 fi
 
-echo_cymbal_air_oauth_instructions() {
-  echo ""
-  echo "!!!PLEASE READ THIS BEFORE CONTINUING!!!"
-  echo -e "\a"
-  echo "Cymbal Air Demo deployment requires a manual step!"
-  echo "Follow the steps described in Prepare Client chapter"
-  echo "for setting up Client Id (NOT the OAuth consent - that is done!)"
-  echo "https://codelabs.developers.google.com/codelabs/genai-db-retrieval-app#prepare-client-id"
-  echo "Do NOT follow the steps of the following  chapter 'Run Assistant Application'!"
-  echo "Once you create the client, copy client id and run"
-  echo "'./deploy.sh cymbal-air' again to continue.'"
-}
-
 if [[ $# -eq 0 ]]; then
-    if [[ $CURRENT_STATE == "cymbal-air-base" ]]; then
-        echo_cymbal_air_oauth_instructions
-        echo ""
-    fi
+    source <(awk '/#BEGIN_CUSTOM_HELP/,/#END_CUSTOM_HELP/' $CONFIG_FILE) 
+    
     echo "Usage: $0 <demo_name>"
     echo "Currently supported demos, given current state '$CURRENT_STATE':"
     for transition in "${!VALID_TRANSITIONS[@]}"; do
@@ -102,46 +88,11 @@ if [[ $DEMO_NAME == "cymbal-air" ]] &&
     DEMO_NAME="cymbal-air-oauth"
 fi
 
-TEST_MINIMAL_FILES=(
-    "$CORE_COMPONENTS_DIR/00-landing-zone.tf"
-    "$CORE_COMPONENTS_DIR/09-landing-zone-vars.tf"
-)
 
-ALLOYDB_BASE_FILES=(
-    "$CORE_COMPONENTS_DIR/00-landing-zone.tf"
-    "$CORE_COMPONENTS_DIR/01-landing-zone-network.tf"
-    "$CORE_COMPONENTS_DIR/02-landing-zone-apis.tf"
-    "$CORE_COMPONENTS_DIR/09-landing-zone-vars.tf"
-    "$COMPONENTS_DIR/alloydb-base-1-apis.tf"
-    "$COMPONENTS_DIR/alloydb-base-2-cluster.tf"
-    "$COMPONENTS_DIR/alloydb-base-3-instance.tf"
-    "$COMPONENTS_DIR/alloydb-base-4-clientvm.tf"
-    "$COMPONENTS_DIR/alloydb-base-vars.tf"
-)
-
-CYMBAL_AIR_BASE_FILES=(
-    "${ALLOYDB_BASE_FILES[@]}"
-    "$COMPONENTS_DIR/cymbal-air-demo-1.tf"
-    "$COMPONENTS_DIR/cymbal-air-demo-1-vars.tf"
-)
-# Check if demo name is valid
-if [[ $DEMO_NAME == "test-min" ]]; then
-    # File names to copy
-    FILES_TO_COPY=("${TEST_MINIMAL_FILES[@]}")
-elif [[ $DEMO_NAME == "alloydb-base" ]]; then
-    # File names to copy
-    FILES_TO_COPY=("${ALLOYDB_BASE_FILES[@]}")
-elif [[ $DEMO_NAME == "cymbal-air" ]]; then
-    # File names to copy
-    FILES_TO_COPY=(
-        "${CYMBAL_AIR_BASE_FILES[@]}"
-    )
-elif [[ $DEMO_NAME == "cymbal-air-oauth" ]]; then
-     FILES_TO_COPY=(
-        "${CYMBAL_AIR_BASE_FILES[@]}"
-        "$COMPONENTS_DIR/cymbal-air-demo-2-oauth.tf"
-        "$COMPONENTS_DIR/cymbal-air-demo-2-oauth-vars.tf"
-    )
+#Prepare files to copy based on demo name
+if [[ -v DEMO_FILES[$DEMO_NAME] ]]; then
+    # Copy the files associated with the selected demo
+    read -ra FILES_TO_COPY <<< "${DEMO_FILES[$DEMO_NAME]}"
 elif [[ $DEMO_NAME == "clean" ]]; then
     # File names to copy
     FILES_TO_COPY=(
@@ -190,22 +141,9 @@ if [[ $DEMO_NAME != "clean" ]]; then
         exit 1
     fi
 
-    # Handle transition
-    if [[ $DEMO_NAME == "cymbal-air" ]] &&
-       [[ $CURRENT_STATE != "cymbal-air-base" ]] ; then
-        echo "cymbal-air-base" > .current_state
-        echo_cymbal_air_oauth_instructions
-    elif [[ $DEMO_NAME == "cymbal-air-oauth" ]]; then
-        echo "cymbal-air" > .current_state
-        echo "You can now run ./cymbal-air-start.sh and point your browser to"
-        echo "localhost:8081 to start the demo."
-        echo ""
-        echo "IMPORTANT: IT TAKES A WHILE FOR ALL THE CHANGES TO APPLY"
-        echo ""
-        echo "We recommend to wait ~30 minutes before starting the demo"
-    else
-        echo $DEMO_NAME > .current_state
-    fi
+    #Source any custom state transitions
+    source <(awk '/#BEGIN_CUSTOM_STATE_TRANSITIONS/,/#END_CUSTOM_STATE_TRANSITIONS/' $CONFIG_FILE) 
+    
 else
     (cd "${TF_DIR}" && terraform destroy)
     #Handle tf failures
