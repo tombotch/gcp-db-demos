@@ -1,4 +1,5 @@
 **/.terraform/
+**/.current_state
 *.terraform*
 *.tfstate
 *.tfstate.*
@@ -9,3 +10,4 @@
 crash.log
 crash.*.log
 alloydb/deployments
+alloydb/tf

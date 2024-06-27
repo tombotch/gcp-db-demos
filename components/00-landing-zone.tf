@@ -23,7 +23,7 @@ resource "random_id" "unique_project_suffix" {
   byte_length = 3 
 }
 
-resource "google_project" "alloydb-demo-project" {
+resource "google_project" "demo-project" {
   name       = "${var.demo_project_id}-${random_id.unique_project_suffix.hex}"
   project_id = "${var.demo_project_id}-${random_id.unique_project_suffix.hex}"
 
@@ -32,5 +32,5 @@ resource "google_project" "alloydb-demo-project" {
 }
 
 output "project_id" {
-  value = google_project.alloydb-demo-project.project_id
+  value = google_project.demo-project.project_id
 }

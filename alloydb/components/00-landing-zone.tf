@@ -1,0 +1,1 @@
+../../components/00-landing-zone.tf

@@ -3,7 +3,7 @@ resource "google_compute_instance" "alloydb-client" {
   name         = "alloydb-client"
   machine_type = "e2-medium"
   zone         = "${var.region}-a" 
-  project      = google_project.alloydb-demo-project.project_id
+  project      = google_project.demo-project.project_id
  
 
   boot_disk {
@@ -13,11 +13,11 @@ resource "google_compute_instance" "alloydb-client" {
   }
 
   network_interface {
-    network = google_compute_network.alloydb_network.id
+    network = google_compute_network.demo_network.id
   }
 
   service_account {
-    email  = "${google_project.alloydb-demo-project.number}-compute@developer.gserviceaccount.com"
+    email  = "${google_project.demo-project.number}-compute@developer.gserviceaccount.com"
     scopes = ["cloud-platform"]
   }
 
@@ -46,9 +46,9 @@ locals {
 
 resource "google_project_iam_member" "default_compute_sa_alloydb_viewer" {
   for_each = toset(local.default_compute_sa_roles)
-  project  = google_project.alloydb-demo-project.project_id
+  project  = google_project.demo-project.project_id
   role     = each.key
-  member   = "serviceAccount:${google_project.alloydb-demo-project.number}-compute@developer.gserviceaccount.com"
+  member   = "serviceAccount:${google_project.demo-project.number}-compute@developer.gserviceaccount.com"
   depends_on = [time_sleep.wait_for_alloydb_clientvm_boot]
 }
 
@@ -59,9 +59,9 @@ resource "null_resource" "install_postgresql_client" {
   provisioner "local-exec" {
     command = <<-EOT
       gcloud compute ssh alloydb-client --zone=${var.region}-a --tunnel-through-iap \
-      --project ${google_project.alloydb-demo-project.project_id} --command='touch ~/.profile &&
+      --project ${google_project.demo-project.project_id} --command='touch ~/.profile &&
       sudo apt install postgresql-client -y &&
-      echo "export PROJECT_ID=\${google_project.alloydb-demo-project.project_id}" >> ~/.profile &&
+      echo "export PROJECT_ID=\${google_project.demo-project.project_id}" >> ~/.profile &&
       echo "export REGION=\${var.region}" >> ~/.profile &&
       echo "export ADBCLUSTER=\${var.alloydb_cluster_name}" >> ~/.profile &&
       echo "export PGHOST=\$(gcloud alloydb instances describe ${var.alloydb_primary_name} --cluster=\$ADBCLUSTER --region=\$REGION --format=\"value(ipAddress)\")" >> ~/.profile &&

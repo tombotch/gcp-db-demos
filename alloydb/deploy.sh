@@ -2,6 +2,7 @@
 
 TF_DIR="./tf"
 COMPONENTS_DIR="./components"
+CORE_COMPONENTS_DIR="../$COMPONENTS_DIR"
 DEMO_NAME="$1"
 mkdir -p $TF_DIR
 
@@ -102,23 +103,26 @@ if [[ $DEMO_NAME == "cymbal-air" ]] &&
 fi
 
 TEST_MINIMAL_FILES=(
-    "alloydb-base-0-project.tf"
-    "alloydb-base-vars.tf"
+    "$CORE_COMPONENTS_DIR/00-landing-zone.tf"
+    "$CORE_COMPONENTS_DIR/09-landing-zone-vars.tf"
 )
 
 ALLOYDB_BASE_FILES=(
-    "alloydb-base-0-project.tf"
-    "alloydb-base-1-infrastructure.tf"
-    "alloydb-base-2-cluster.tf"
-    "alloydb-base-3-instance.tf"
-    "alloydb-base-4-clientvm.tf"
-    "alloydb-base-vars.tf"
+    "$CORE_COMPONENTS_DIR/00-landing-zone.tf"
+    "$CORE_COMPONENTS_DIR/01-landing-zone-network.tf"
+    "$CORE_COMPONENTS_DIR/02-landing-zone-apis.tf"
+    "$CORE_COMPONENTS_DIR/09-landing-zone-vars.tf"
+    "$COMPONENTS_DIR/alloydb-base-1-apis.tf"
+    "$COMPONENTS_DIR/alloydb-base-2-cluster.tf"
+    "$COMPONENTS_DIR/alloydb-base-3-instance.tf"
+    "$COMPONENTS_DIR/alloydb-base-4-clientvm.tf"
+    "$COMPONENTS_DIR/alloydb-base-vars.tf"
 )
 
 CYMBAL_AIR_BASE_FILES=(
     "${ALLOYDB_BASE_FILES[@]}"
-    "cymbal-air-demo-1.tf"
-    "cymbal-air-demo-1-vars.tf"
+    "$COMPONENTS_DIR/cymbal-air-demo-1.tf"
+    "$COMPONENTS_DIR/cymbal-air-demo-1-vars.tf"
 )
 # Check if demo name is valid
 if [[ $DEMO_NAME == "test-min" ]]; then
@@ -135,8 +139,8 @@ elif [[ $DEMO_NAME == "cymbal-air" ]]; then
 elif [[ $DEMO_NAME == "cymbal-air-oauth" ]]; then
      FILES_TO_COPY=(
         "${CYMBAL_AIR_BASE_FILES[@]}"
-        "cymbal-air-demo-2-oauth.tf"
-        "cymbal-air-demo-2-oauth-vars.tf"
+        "$COMPONENTS_DIR/cymbal-air-demo-2-oauth.tf"
+        "$COMPONENTS_DIR/cymbal-air-demo-2-oauth-vars.tf"
     )
 elif [[ $DEMO_NAME == "clean" ]]; then
     # File names to copy
@@ -168,9 +172,10 @@ if [[ $DEMO_NAME != "clean" ]]; then
     # Remove existing files from the TF directory
     rm -f ${TF_DIR}/*.tf
 
-    # Copy files from the components directory
+    # Copy files from the array (which includes path!) to a destination
+    # directory and file name excluding path (the ${file##*/} part)
     for file in "${FILES_TO_COPY[@]}"; do
-        cp "${COMPONENTS_DIR}/${file}" "${TF_DIR}/${file}"
+        cp "${file}" "${TF_DIR}/${file##*/}"
     done
     
     #any new wars to apply?

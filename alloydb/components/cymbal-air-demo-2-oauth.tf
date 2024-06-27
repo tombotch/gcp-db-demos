@@ -3,7 +3,7 @@ resource "null_resource" "cymbal_air_env_client_id" {
   provisioner "local-exec" {
     command = <<-EOT
       gcloud compute ssh alloydb-client --zone=${var.region}-a --tunnel-through-iap \
-      --project ${google_project.alloydb-demo-project.project_id} \
+      --project ${google_project.demo-project.project_id} \
       --command='touch ~/.profile
       echo "export CLIENT_ID=${var.cymbail_air_web_app_client_id}" >> ~/.profile'
     EOT
@@ -17,7 +17,7 @@ resource "local_file" "cymbal_air_start_script" {
   content = <<-EOT
 #!/bin/bash 
 gcloud compute ssh alloydb-client --zone=${var.region}-a --tunnel-through-iap \
---project ${google_project.alloydb-demo-project.project_id} \
+--project ${google_project.demo-project.project_id} \
 --command='
     (                                             # Create subshell
         source ~/.profile                         # Source bash profile as we have settings there!
