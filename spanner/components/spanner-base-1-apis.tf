@@ -1,7 +1,7 @@
 #Enable APIs
 locals {
-  alloydb_apis_to_enable = [
-    "alloydb.googleapis.com",
+  spanner_apis_to_enable = [
+    "spanner.googleapis.com",
     "aiplatform.googleapis.com",
     "cloudbuild.googleapis.com",
     "artifactregistry.googleapis.com",
@@ -9,11 +9,10 @@ locals {
   ]
 }
 
-resource "google_project_service" "alloydb_services" {
-  for_each           = toset(local.alloydb_apis_to_enable)
+resource "google_project_service" "spanner_services" {
+  for_each           = toset(local.spanner_apis_to_enable)
   service            = each.key
   disable_on_destroy = false
   depends_on         = [null_resource.enable_service_usage_api]
   project            = google_project.demo-project.project_id
 }
-

@@ -50,6 +50,12 @@ if [[ $DEMO_NAME == "detach" ]]; then
     exit 0
 fi
 
+if [[ $DEMO_NAME == "power-wash" ]]; then
+    clean_up
+    rm -f .current_state
+    rm -rf $TF_DIR
+    exit 0
+fi
 
 if [[ $CURRENT_STATE == "dirty" ]]; then
     echo "!!!Current state is dirty!!!"

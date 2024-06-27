@@ -12,4 +12,6 @@ resource "google_alloydb_cluster" "alloydb_cluster" {
     user     = "postgres"
     password = var.alloydb_password
   }
+
+  depends_on = [ google_project_service.alloydb_services ]
 }
