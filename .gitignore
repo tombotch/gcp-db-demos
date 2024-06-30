@@ -11,3 +11,5 @@ crash.log
 crash.*.log
 alloydb/deployments
 alloydb/tf
+spanner/deployments
+spanner/tf

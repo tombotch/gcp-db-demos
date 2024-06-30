@@ -34,7 +34,7 @@ resource "null_resource" "cymbal_air_demo_exec_db_script" {
   provisioner "local-exec" {
     when    = destroy
     command = <<EOT
-      gcloud compute ssh alloydb-client --zone=${self.triggers.region}-a \
+      gcloud compute ssh ${var.clientvm-name} --zone=${self.triggers.region}-a \
       --tunnel-through-iap --command='export PGHOST=${self.triggers.instance_ip}
       export PGUSER=postgres
       export PGPASSWORD=${self.triggers.alloydb_password}

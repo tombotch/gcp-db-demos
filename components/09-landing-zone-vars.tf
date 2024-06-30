@@ -13,3 +13,9 @@ variable "region" {
   description = "Your Google Cloud Region"
   default     = "europe-west3"
 }
+
+variable "clientvm-name" {
+  type        = string
+  description = "Client VM name"
+  default     = "demo-database-client"
+}

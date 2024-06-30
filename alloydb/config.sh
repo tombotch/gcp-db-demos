@@ -4,16 +4,14 @@ echo "don't run this file directly :)"
 exit 1
 
 #BEGIN_DEFINITIONS
-declare -A VALID_TRANSITIONS=(
+declare -gA VALID_TRANSITIONS=(
     ["clean,test-min"]="true"
     ["clean,alloydb-base"]="true"
     ["clean,cymbal-air"]=true
-    ["test-min,clean"]="true"
-    ["alloydb-base,clean"]="true"
     ["alloydb-base,cymbal-air"]="true"
-    ["cymbal-air,clean"]="true"
+    ["cymbal-air-base,alloydb-base"]="true"
     ["cymbal-air-base,cymbal-air"]="true"
-    ["cymbal-air-base,clean"]="true"
+    ["cymbal-air,alloydb-base"]="true"
 )
 
 TEST_MINIMAL_FILES=(
@@ -43,7 +41,7 @@ CYMBAL_AIR_FILES=(
 )
 
 
-declare -A DEMO_FILES=(
+declare -gA DEMO_FILES=(
   ["test-min"]="${TEST_MINIMAL_FILES[*]}"
   ["alloydb-base"]="${ALLOYDB_BASE_FILES[*]}" 
   ["cymbal-air"]="${CYMBAL_AIR_BASE_FILES[*]}"
@@ -76,10 +74,25 @@ echo_cymbal_air_oauth_instructions() {
 #END_CUSTOM_HELP
 
 
+#BEGIN_TF_STRING_REPLACEMENTS
+TF_REPLACEMENTS=(
+  "demo-database-client" "alloydb-client"
+)
+#END_TF_STRING_REPLACEMENTS
+
+#BEGIN_SUBSTITUTE_TARGET_DEMO
+if [[ $DEMO_NAME == "cymbal-air" ]] &&
+   [[ $CURRENT_STATE == "cymbal-air-base" ]]; then
+    DEMO_NAME="cymbal-air-oauth"
+fi
+#END_SUBSTITUTE_TARGET_DEMO
+
+
 #these are applied AFTER terraform apply
 #this makes it possible to inject custom state, e.g. for
 #cymbal-air oauth setup
 #BEGIN_CUSTOM_STATE_TRANSITIONS
+    echo "Custom transitions"
     if [[ $DEMO_NAME == "cymbal-air" ]] &&
        [[ $CURRENT_STATE != "cymbal-air-base" ]] ; then
         echo "cymbal-air-base" > .current_state

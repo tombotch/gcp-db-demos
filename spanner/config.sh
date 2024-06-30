@@ -4,9 +4,11 @@ echo "don't run this file directly :)"
 exit 1
 
 #BEGIN_DEFINITIONS
-declare -A VALID_TRANSITIONS=(
+declare -gA VALID_TRANSITIONS=(
+    ["clean,landing-zone"]="true"
     ["clean,spanner-base"]="true"
-    ["spanner-base,clean"]="true"
+    ["landing-zone,spanner-base"]="true"
+    ["spanner-base,landing-zone"]="true"
 )
 
 
@@ -16,8 +18,9 @@ SPANNER_BASE_FILES=(
     "$COMPONENTS_DIR/spanner-base-2-instance.tf"
 )
 
-declare -A DEMO_FILES=(
-  ["spanner-base"]="${SPANNER_BASE_FILES[*]}" 
+declare -gA DEMO_FILES=(
+    ["landing-zone"]="${LANDING_ZONE_FILES[*]}" 
+    ["spanner-base"]="${SPANNER_BASE_FILES[*]}" 
 )
 #END_DEFINITIONS
 
@@ -26,6 +29,13 @@ declare -A DEMO_FILES=(
 #if no parameters are passed to the script 
 #BEGIN_CUSTOM_HELP
 #END_CUSTOM_HELP
+
+
+#BEGIN_TF_STRING_REPLACEMENTS
+TF_REPLACEMENTS=(
+  "demo-database-client" "spanner-client"
+)
+#END_TF_STRING_REPLACEMENTS
 
 
 #these are applied AFTER terraform apply

@@ -1,0 +1,1 @@
+../../components/03-landing-zone-clientvm.tf

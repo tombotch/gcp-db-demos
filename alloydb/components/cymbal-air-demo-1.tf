@@ -1,4 +1,4 @@
-#Add required roles to the default compute SA (used by Alloydb-client VM and Cloud Build)
+#Add required roles to the default compute SA (used by clientVM and Cloud Build)
 locals {
   default_compute_sa_roles_expanded = [
     "roles/cloudbuild.builds.editor",
@@ -15,50 +15,10 @@ resource "google_project_iam_member" "default_compute_sa_roles_expanded" {
   project  = google_project.demo-project.project_id
   role     = each.key
   member   = "serviceAccount:${google_project.demo-project.number}-compute@developer.gserviceaccount.com"
-  depends_on = [time_sleep.wait_for_alloydb_clientvm_boot]
+  depends_on = [time_sleep.wait_for_database_clientvm_boot]
 }
 
-# resource "google_project_iam_member" "default_compute_sa_cloudbuild_builds_editor" {
-#   project    = google_project.demo-project.project_id
-#   role       = "roles/cloudbuild.builds.editor"
-#   member     = "serviceAccount:${google_project.demo-project.number}-compute@developer.gserviceaccount.com"
-#   depends_on = [time_sleep.wait_for_alloydb_clientvm_boot]
-# }
 
-# resource "google_project_iam_member" "default_compute_sa_artifactregistry_admin" {
-#   project    = google_project.demo-project.project_id
-#   role       = "roles/artifactregistry.admin"
-#   member     = "serviceAccount:${google_project.demo-project.number}-compute@developer.gserviceaccount.com"
-#   depends_on = [time_sleep.wait_for_alloydb_clientvm_boot]
-# }
-
-# resource "google_project_iam_member" "default_compute_sa_storage_admin" {
-#   project    = google_project.demo-project.project_id
-#   role       = "roles/storage.admin"
-#   member     = "serviceAccount:${google_project.demo-project.number}-compute@developer.gserviceaccount.com"
-#   depends_on = [time_sleep.wait_for_alloydb_clientvm_boot]
-# }
-
-# resource "google_project_iam_member" "default_compute_sa_run_admin" {
-#   project    = google_project.demo-project.project_id
-#   role       = "roles/run.admin"
-#   member     = "serviceAccount:${google_project.demo-project.number}-compute@developer.gserviceaccount.com"
-#   depends_on = [time_sleep.wait_for_alloydb_clientvm_boot]
-# }
-
-# resource "google_project_iam_member" "default_compute_sa_iam_service_account_user" {
-#   project    = google_project.demo-project.project_id
-#   role       = "roles/iam.serviceAccountUser"
-#   member     = "serviceAccount:${google_project.demo-project.number}-compute@developer.gserviceaccount.com"
-#   depends_on = [time_sleep.wait_for_alloydb_clientvm_boot]
-# }
-
-# resource "google_project_iam_member" "default_compute_sa_aiplatform_user" {
-#   project    = google_project.demo-project.project_id
-#   role       = "roles/aiplatform.user"
-#   member     = "serviceAccount:${google_project.demo-project.number}-compute@developer.gserviceaccount.com"
-#   depends_on = [time_sleep.wait_for_alloydb_clientvm_boot]
-# }
 
 #Create and run Create db script
 resource "null_resource" "cymbal_air_demo_create_db_script" {
@@ -66,7 +26,7 @@ resource "null_resource" "cymbal_air_demo_create_db_script" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      gcloud compute ssh alloydb-client --zone=${var.region}-a --tunnel-through-iap \
+      gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a --tunnel-through-iap \
       --project ${google_project.demo-project.project_id} \
       --command='cat <<EOF > ~/cymbal-air-demo-create-db.sql
       CREATE DATABASE assistantdemo;
@@ -88,7 +48,7 @@ resource "null_resource" "cymbal_air_demo_exec_db_script" {
 
   provisioner "local-exec" {
     command = <<EOT
-      gcloud compute ssh alloydb-client --zone=${var.region}-a \
+      gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a \
       --tunnel-through-iap \
       --project ${google_project.demo-project.project_id} \
       --command='export PGHOST=${google_alloydb_instance.primary_instance.ip_address}
@@ -101,7 +61,7 @@ resource "null_resource" "cymbal_air_demo_exec_db_script" {
   # provisioner "local-exec" {
   #   when    = destroy
   #   command = <<EOT
-  #     gcloud compute ssh alloydb-client --zone=${self.triggers.region}-a \
+  #     gcloud compute ssh ${var.clientvm-name} --zone=${self.triggers.region}-a \
   #     --tunnel-through-iap --command='export PGHOST=${self.triggers.instance_ip}
   #     export PGUSER=postgres
   #     export PGPASSWORD=${self.triggers.password}
@@ -117,7 +77,7 @@ resource "null_resource" "cymbal_air_demo_fetch_and_config" {
 
   provisioner "local-exec" {
     command = <<EOT
-      gcloud compute ssh alloydb-client --zone=${var.region}-a \
+      gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a \
       --tunnel-through-iap \
       --project ${google_project.demo-project.project_id} \
       --command='export PGHOST=${google_alloydb_instance.primary_instance.ip_address}
@@ -146,7 +106,7 @@ resource "null_resource" "cymbal_air_demo_fetch_and_config" {
 
   # provisioner "local-exec" {
   #   command = <<EOT
-  #     gcloud compute ssh alloydb-client --zone=${var.region}-a \
+  #     gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a \
   #     --tunnel-through-iap \
   #     --project ${google_project.demo-project.project_id} \
   #     --command='export PGHOST=${google_alloydb_instance.primary_instance.ip_address}
@@ -220,7 +180,7 @@ resource "null_resource" "cymbal_air_build_retrieval_service" {
 
   provisioner "local-exec" {
     command = <<EOT
-      gcloud compute ssh alloydb-client --zone=${var.region}-a --tunnel-through-iap \
+      gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a --tunnel-through-iap \
       --project ${google_project.demo-project.project_id} \
       --command='cd ~/genai-databases-retrieval-app/retrieval_service
       gcloud builds submit --tag ${var.region}-docker.pkg.dev/${google_project.demo-project.project_id
@@ -260,7 +220,7 @@ resource "null_resource" "cymbal_air_build_sample_app" {
 
   provisioner "local-exec" {
     command = <<EOT
-      gcloud compute ssh alloydb-client --zone=${var.region}-a \
+      gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a \
       --tunnel-through-iap --project ${google_project.demo-project.project_id} \
       --command='python3 -m venv .venv
       source .venv/bin/activate
@@ -276,7 +236,7 @@ resource "null_resource" "cymbal_air_prep_sample_app" {
                 null_resource.cymbal_air_build_sample_app]
   provisioner "local-exec" {
     command = <<-EOT
-      gcloud compute ssh alloydb-client --zone=${var.region}-a --tunnel-through-iap \
+      gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a --tunnel-through-iap \
       --project ${google_project.demo-project.project_id} \
       --command='touch ~/.profile
       echo "export BASE_URL=\$(gcloud  run services list --filter=\"(retrieval-service)\" --format=\"value(URL)\")" >> ~/.profile'
