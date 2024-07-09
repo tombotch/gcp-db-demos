@@ -83,6 +83,7 @@ resource "null_resource" "cymbal_air_demo_fetch_and_config" {
       --command='export PGHOST=${google_alloydb_instance.primary_instance.ip_address}
       export PGUSER=postgres
       export PGPASSWORD=${var.alloydb_password}
+      sudo apt-get update
       sudo apt install -y python3.11-venv git
       python3 -m venv .venv
       source .venv/bin/activate

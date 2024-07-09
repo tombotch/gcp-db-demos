@@ -57,6 +57,17 @@
 #   That hendler replaces the default and must have its own default option
 #   echo $DEMO_NAME > .current_state if no custom state is detected!
 
+#init
+declare -g TF_DIR="./tf"
+declare -g COMPONENTS_DIR="./components"
+declare -g CORE_COMPONENTS_DIR="../$COMPONENTS_DIR"
+declare -g CONFIG_FILE="config.sh"
+declare -g CURRENT_STATE=$(cat ".current_state" 2>/dev/null || echo "clean")
+declare -g DEMO_NAME="$1"
+declare -g TF_LOG="./.tf.log"  # Define log file path
+
+mkdir -p $TF_DIR #create the dir if it doesn't exist
+
 read_config_tag() {
     local begin_tag="BEGIN_$1"
     local end_tag="END_$1"
@@ -141,23 +152,55 @@ handle_detach() {
 }
 
 handle_clean() {
+    TF_AUTO_APPROVE=false  # Flag to track whether to force destroy
+
     if [ "$CURRENT_STATE" = "clean" ]; then
         echo "Current state is clean, nothing to do!"
         exit 0
     fi
 
-    (cd "${TF_DIR}" && terraform destroy)
-    #Handle tf failures
-    if [ $? -ne 0 ]; then
-        print_tf_error "destroy"
-        echo "dirty" > .current_state
-        exit 1
-    fi
-    #Clean up
-    clean_up
-    echo "clean" > .current_state
-    exit 0
+    # There is an issue with serverless ip not being destroyed for quite some time
+    # Detect it and retry 
+    for i in {1..10}; do  # Attempt up to 10 times
+
+        #if TF_AUTO_APPROVE is set, that indicates that network error has been detected
+        if [[ $TF_AUTO_APPROVE == true ]]; then
+            echo "Detected a known network dependency issue. Retrying in:"
+            for countdown in {600..0}; do
+                echo -ne "...$countdown seconds...\r"
+                sleep 1
+            done
+            echo "Retrying now..."
+        fi
+
+        (cd "${TF_DIR}" && terraform destroy $([ "$TF_AUTO_APPROVE" == true ] && echo "-auto-approve")) 2> "$TF_LOG"
+        if [ $? -eq 0 ]; then
+            #Clean up
+            clean_up
+            echo "clean" > .current_state
+            # Success, exit 
+            exit 0
+        else
+            # Error occurred, print the log file contents
+            echo "Terraform destroy failed. Error log:"
+            cat "$TF_LOG"  # Print the contents of the log file
+            
+            # Error, check if it's the specific network error
+            if grep -q "Error waiting for Deleting Network" "$TF_LOG" && grep -q "serverless-ipv4" "$TF_LOG"; then
+                TF_AUTO_APPROVE=true  # Set the flag for subsequent retries
+            else
+                # Different error, break the loop and print the generic error message
+                print_tf_error "destroy"
+                echo "dirty" > .current_state
+                exit 1
+            fi
+        fi
+    done
+
+    echo "All destroy attempts failed."
+    exit 1  # Exit with an error code
 }
+
 
 handle_power_wash() {
     echo "Power-wash will wipe active configuration WITHOUT DESTROYING CLOUD RESOURCES"
@@ -266,22 +309,13 @@ handle_deploy_demo() {
 
 
 main() {
-    #init
-    declare -g TF_DIR="./tf"
-    declare -g COMPONENTS_DIR="./components"
-    declare -g CORE_COMPONENTS_DIR="../$COMPONENTS_DIR"
-    declare -g CONFIG_FILE="config.sh"
-    declare -g CURRENT_STATE=$(cat ".current_state" 2>/dev/null || echo "clean")
-    declare -g DEMO_NAME="$1"
-    mkdir -p $TF_DIR #create the dir if it doesn't exist
-
     load_definitions
 
     case "$CURRENT_STATE,$DEMO_NAME" in
-        # Dirty state with any command or no command
-        "dirty",* | "dirty,")
-            handle_dirty_state
-            exit 1
+        # Any state with "power-wash" commands
+        *,"power-wash")
+            handle_power_wash
+            exit 0
             ;;
 
         # Any state with clean command
@@ -290,10 +324,10 @@ main() {
             exit 0
             ;;
 
-        # Any state with "power-wash" commands
-        *,"power-wash")
-            handle_power_wash
-            exit 0
+        # Dirty state with any command or no command
+        "dirty",* | "dirty,")
+            handle_dirty_state
+            exit 1
             ;;
 
         # Any state with "detach" command: Detach the configuration
