@@ -16,7 +16,7 @@ This repository is (going to be) a collection of ready-to-deploy demo projects f
 
 | Database     | Description                                           | Status |
 |---------------|-------------------------------------------------------|--------|
-| AlloyDB	   | PostgreSQL-compatible managed database for enterprise workloads | ✅     |
+| [AlloyDB](./alloydb/README.md)	   | PostgreSQL-compatible managed database for enterprise workloads | ✅     |
 | Spanner      | Distributed SQL for mission-critical applications     | 🚧     |
 | Firestore    | NoSQL document database for mobile and web apps        | 🚧     |
 | Cloud SQL    | Fully managed relational database for MySQL, PostgreSQL, SQL Server | 🚧     |
