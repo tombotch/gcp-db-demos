@@ -88,7 +88,7 @@ resource "null_resource" "cymbal_air_demo_fetch_and_config" {
       python3 -m venv .venv
       source .venv/bin/activate
       pip install --upgrade pip
-      git clone https://github.com/GoogleCloudPlatform/genai-databases-retrieval-app.git
+      git clone --depth 1 --branch v0.1.0  https://github.com/GoogleCloudPlatform/genai-databases-retrieval-app.git
       cd genai-databases-retrieval-app/retrieval_service
       cp example-config-alloydb.yml config.yml
       sed -i s/my-project/${google_project.demo-project.project_id}/g config.yml

@@ -11,11 +11,16 @@ variable "billing_account_id" {
 variable "region" {
   type        = string
   description = "Your Google Cloud Region"
-  default     = "europe-west3"
 }
 
 variable "clientvm-name" {
   type        = string
   description = "Client VM name"
   default     = "demo-database-client"
+}
+
+variable "test_mode" {
+  type        = bool
+  description = "Test mode"
+  default     = false
 }

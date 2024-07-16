@@ -1,4 +1,7 @@
 **/.terraform/
+**/.snapshots/
+**/.backup/
+**/secrets/
 **/.current_state
 *.terraform*
 *.tfstate
@@ -13,3 +16,6 @@ alloydb/deployments
 alloydb/tf
 spanner/deployments
 spanner/tf
+alloydb/.tf.log
+.vscode/launch.json
+spanner/.tf.log
