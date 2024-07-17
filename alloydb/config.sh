@@ -33,6 +33,7 @@ ALLOYDB_TRIAL_FILES=(
     "$COMPONENTS_DIR/alloydb-base-1-apis.tf"
     "$COMPONENTS_DIR/alloydb-base-2a-cluster-trial.tf"
     "$COMPONENTS_DIR/alloydb-base-3-instance.tf"
+    "$COMPONENTS_DIR/alloydb-trial-3-instance-vars.tf"
     "$COMPONENTS_DIR/alloydb-base-4-clientvm.tf"
     "$COMPONENTS_DIR/alloydb-base-vars.tf"
     "$COMPONENTS_DIR/alloydb-base-create-trial-cluster.sh.tpl"
@@ -42,6 +43,7 @@ ALLOYDB_BASE_FILES=(
     "$COMPONENTS_DIR/alloydb-base-1-apis.tf"
     "$COMPONENTS_DIR/alloydb-base-2-cluster.tf"
     "$COMPONENTS_DIR/alloydb-base-3-instance.tf"
+    "$COMPONENTS_DIR/alloydb-base-3-instance-vars.tf"
     "$COMPONENTS_DIR/alloydb-base-4-clientvm.tf"
     "$COMPONENTS_DIR/alloydb-base-vars.tf"
 )

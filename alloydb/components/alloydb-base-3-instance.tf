@@ -12,7 +12,7 @@ resource "google_alloydb_instance" "primary_instance" {
   instance_type     = "PRIMARY"
   availability_type = "ZONAL"
   machine_config {
-    cpu_count = 2
+    cpu_count = var.alloydb_primary_cpu_count
   }
   depends_on = [alloydb_instance_depends_on]
 }
