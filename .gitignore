@@ -19,3 +19,4 @@ spanner/tf
 alloydb/.tf.log
 .vscode/launch.json
 spanner/.tf.log
+alloydb/alloydb-client.sh

@@ -35,3 +35,12 @@ resource "null_resource" "install_postgresql_client" {
     EOT
   }
 }
+
+resource "local_file" "alloydb_client_script" {
+  filename = "../alloydb-client.sh"
+  content = <<-EOT
+#!/bin/bash 
+gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a --tunnel-through-iap \
+--project ${google_project.demo-project.project_id} 
+  EOT
+}
