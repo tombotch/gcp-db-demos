@@ -36,13 +36,6 @@ This provides a quick way to set up AlloyDB but doesn't include additional featu
 
 This demo creates a foundational AlloyDB [free trial environment](https://cloud.google.com/alloydb/docs/free-trial-cluster), similar to the base one.
 
-**Important:** _Trial cluster can be provisioned only once_. For this reason, destroying trial cluster through the automatic clean (destroy) process is disabled.
-
-You can remove the blocker by running
-
-`perl  -i -0777 -pe 's/provisioner\s+"local-exec"\s*\{[^}]*?when\s*=\s*destroy[^}]*\}//g' ./tf/alloydb-base-2a-cluster-trial.tf`
-
-and then running `./detach.sh clean`.
 
 ### cymbal-air
 

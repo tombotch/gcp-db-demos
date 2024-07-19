@@ -37,6 +37,7 @@ ALLOYDB_TRIAL_FILES=(
     "$COMPONENTS_DIR/alloydb-base-4-clientvm.tf"
     "$COMPONENTS_DIR/alloydb-base-vars.tf"
     "$COMPONENTS_DIR/alloydb-base-create-trial-cluster.sh.tpl"
+    "$COMPONENTS_DIR/alloydb-base-destroy-trial-cluster.sh.tpl"
 )
 
 ALLOYDB_BASE_FILES=(

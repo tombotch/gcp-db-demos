@@ -1,15 +1,16 @@
 resource "null_resource" "create_alloydb_trial_cluster" {
+    triggers = {
+        cluster_name = var.alloydb_cluster_name
+        region       = var.region
+        password     = var.alloydb_password
+        project_id   = google_project.demo-project.project_id
+        network_id   = google_compute_network.demo_network.id
+        test_mode    = var.test_mode
+    }
+
     provisioner "local-exec" {
         command = templatefile("${path.module}/alloydb-base-create-trial-cluster.sh.tpl", 
-          {
-            cluster_name = var.alloydb_cluster_name
-            region       = var.region
-            password     = var.alloydb_password
-            project_id   = google_project.demo-project.project_id
-            network_id   = google_compute_network.demo_network.id
-            test_mode    = var.test_mode
-          }
-        )
+                  self.triggers)
     }
 
     provisioner "local-exec" {
@@ -26,25 +27,9 @@ resource "null_resource" "create_alloydb_trial_cluster" {
 
     provisioner "local-exec" {
         when    = destroy
-        command = <<EOT
-            echo "";
-            echo "";
-            echo "WARNING   WARNING   WARNING   WARNING   WARNING   WARNING";
-            echo "";
-            echo "You are trying to destroy a trial cluster!!!";
-            echo "";
-            echo "Once it's destroyed, another trial cluster can't be recreated!";
-            echo "";
-            echo "For this reason we don't provide a way to destroy a trial cluster";
-            echo "";
-            echo "If you want to proceed, delete it manually and then continue with";
-            echo "terraform destroy.";
-            echo "";
-            echo "WARNING   WARNING   WARNING   WARNING   WARNING   WARNING";
-            echo "";
-            echo "";
-            exit 1;
-        EOT
+        command = templatefile("${path.module}/alloydb-base-destroy-trial-cluster.sh.tpl", 
+                  self.triggers
+                  ) 
     }
 
     # Ensure this resource is created before other resources that depend on it
