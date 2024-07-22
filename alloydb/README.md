@@ -36,6 +36,11 @@ This provides a quick way to set up AlloyDB but doesn't include additional featu
 
 This demo creates a foundational AlloyDB [free trial environment](https://cloud.google.com/alloydb/docs/free-trial-cluster), similar to the base one.
 
+See the walkthrough here:
+
+
+[![](https://img.youtube.com/vi/mJ8F4v9y9Nk/0.jpg)](https://www.youtube.com/watch?v=mJ8F4v9y9Nk)
+
 
 ### cymbal-air
 
