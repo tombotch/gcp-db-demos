@@ -7,8 +7,8 @@ exit 1
 declare -ga TRANSITIONS=(
     "landing-zone,alloydb-base"
     "landing-zone,alloydb-trial"
-    "alloydb-base,cymbal-air"
     "alloydb-trial,cymbal-air"
+    "alloydb-base,cymbal-air"
     "cymbal-air-base,cymbal-air"    #intermediate step, done automatically
     "test-min,test-net"             #test steps
     "test-net,test-vm"              #test steps
