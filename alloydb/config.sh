@@ -31,13 +31,11 @@ TEST_VM_FILES=(
 
 ALLOYDB_TRIAL_FILES=(
     "$COMPONENTS_DIR/alloydb-base-1-apis.tf"
-    "$COMPONENTS_DIR/alloydb-base-2a-cluster-trial.tf"
+    "$COMPONENTS_DIR/alloydb-base-2-cluster.tf"
     "$COMPONENTS_DIR/alloydb-base-3-instance.tf"
     "$COMPONENTS_DIR/alloydb-trial-3-instance-vars.tf"
     "$COMPONENTS_DIR/alloydb-base-4-clientvm.tf"
     "$COMPONENTS_DIR/alloydb-base-vars.tf"
-    "$COMPONENTS_DIR/alloydb-base-create-trial-cluster.sh.tpl"
-    "$COMPONENTS_DIR/alloydb-base-destroy-trial-cluster.sh.tpl"
 )
 
 ALLOYDB_BASE_FILES=(
@@ -52,6 +50,9 @@ ALLOYDB_BASE_FILES=(
 CYMBAL_AIR_BASE_FILES=(
     "$COMPONENTS_DIR/cymbal-air-demo-1.tf"
     "$COMPONENTS_DIR/cymbal-air-demo-1-vars.tf"
+    "$COMPONENTS_DIR/cymbal-air-demo-create-db.sql"
+    "$COMPONENTS_DIR/pgauth.env.tftpl"
+    "$COMPONENTS_DIR/cymbal-air-config.yml.tftpl"
 )
 
 CYMBAL_AIR_FILES=(
@@ -105,16 +106,16 @@ if [[ "$DEMO_NAME" == "alloydb-trial" ]]; then
     TF_REPLACEMENTS=(
         "alloydb-demo-cluster" "alloydb-trial-cluster"
         "demo-database-client" "alloydb-client"
-        "alloydb_instance_depends_on" "time_sleep.wait_for_network, null_resource.create_alloydb_trial_cluster"
-        "sed_alloydb_cluster_name" "data.external.alloydb_trial_cluster_name.result.name"
+        #"alloydb_instance_depends_on" "time_sleep.wait_for_network, null_resource.create_alloydb_trial_cluster"
+        #"sed_alloydb_cluster_name" "data.external.alloydb_trial_cluster_name.result.name"
         #not used - for future reference, but requires perl!
         #'(variable "alloydb_use_trial_cluster"\s*\{[\s\S]*?default\s*=\s*)false' '$1true'
     )
 else
     TF_REPLACEMENTS=(
         "demo-database-client" "alloydb-client"
-        "alloydb_instance_depends_on" "time_sleep.wait_for_network"
-        "sed_alloydb_cluster_name" "google_alloydb_cluster.alloydb_cluster.name"
+        #"alloydb_instance_depends_on" "time_sleep.wait_for_network"
+        #"sed_alloydb_cluster_name" "google_alloydb_cluster.alloydb_cluster.name"
     )
 fi
 #END_TF_STRING_REPLACEMENTS

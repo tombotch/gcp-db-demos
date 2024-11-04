@@ -7,12 +7,12 @@ resource "time_sleep" "wait_for_network" {
 
 # AlloyDB Instance
 resource "google_alloydb_instance" "primary_instance" {
-  cluster           = sed_alloydb_cluster_name
+  cluster           = google_alloydb_cluster.alloydb_cluster.name
   instance_id       = var.alloydb_primary_name
   instance_type     = "PRIMARY"
   availability_type = "ZONAL"
   machine_config {
     cpu_count = var.alloydb_primary_cpu_count
   }
-  depends_on = [alloydb_instance_depends_on]
+  depends_on = [time_sleep.wait_for_network]
 }

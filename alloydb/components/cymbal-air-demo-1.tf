@@ -21,24 +21,29 @@ resource "google_project_iam_member" "default_compute_sa_roles_expanded" {
 
 
 #Create and run Create db script
-resource "null_resource" "cymbal_air_demo_create_db_script" {
-  depends_on = [null_resource.install_postgresql_client]
+resource "local_sensitive_file" "cymbal_air_pgauth" {
+  filename = "pgauth.env"
+  content = templatefile("pgauth.env.tftpl", {
+    pghost = google_alloydb_instance.primary_instance.ip_address
+    pguser = "postgres"
+    pgpassword = var.alloydb_password
+    pgsslmode = "require"
+  })
+}
 
+resource null_resource "cymbal_air_pgauth" {
   provisioner "local-exec" {
     command = <<-EOT
-      gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a --tunnel-through-iap \
-      --project ${google_project.demo-project.project_id} \
-      --command='cat <<EOF > ~/cymbal-air-demo-create-db.sql
-      CREATE DATABASE assistantdemo;
-      \c assistantdemo
-      CREATE EXTENSION vector;
-      EOF'
+      gcloud compute scp ${local_sensitive_file.cymbal_air_pgauth.filename} ${var.clientvm-name}:~/ \
+      --zone=${var.region}-a \
+      --tunnel-through-iap \
+      --project ${google_project.demo-project.project_id}
     EOT
   }
 }
 
 resource "null_resource" "cymbal_air_demo_exec_db_script" {
-  depends_on = [null_resource.cymbal_air_demo_create_db_script]
+  depends_on = [null_resource.cymbal_air_pgauth]
 
   triggers = {
     instance_ip     = "${google_alloydb_instance.primary_instance.ip_address}"
@@ -48,12 +53,15 @@ resource "null_resource" "cymbal_air_demo_exec_db_script" {
 
   provisioner "local-exec" {
     command = <<EOT
+      gcloud compute scp cymbal-air-demo-create-db.sql ${var.clientvm-name}:~/ \
+      --zone=${var.region}-a \
+      --tunnel-through-iap \
+      --project ${google_project.demo-project.project_id}
+
       gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a \
       --tunnel-through-iap \
       --project ${google_project.demo-project.project_id} \
-      --command='export PGHOST=${google_alloydb_instance.primary_instance.ip_address}
-      export PGUSER=postgres
-      export PGPASSWORD=${var.alloydb_password}
+      --command='source pgauth.env
       psql -f ~/cymbal-air-demo-create-db.sql'
     EOT
   }
@@ -64,13 +72,27 @@ resource "null_resource" "cymbal_air_demo_exec_db_script" {
   #     gcloud compute ssh ${var.clientvm-name} --zone=${self.triggers.region}-a \
   #     --tunnel-through-iap --command='export PGHOST=${self.triggers.instance_ip}
   #     export PGUSER=postgres
-  #     export PGPASSWORD=${self.triggers.password}
+  #     export PGPASSWORD='${self.triggers.password}'
+  #     export PGSSLMODE=require
   #     psql -c 'DROP DATABASE assistantdemo'
   #   EOT
   # }
 }
 
 #Fetch and Configure the demo 
+resource "local_file" "cymbal_air_config" {
+  filename = "config.yml"
+  content  = templatefile("cymbal-air-config.yml.tftpl", {
+    project = google_project.demo-project.project_id
+    region = var.region
+    cluster = google_alloydb_cluster.alloydb_cluster.cluster_id
+    instance = google_alloydb_instance.primary_instance.instance_id
+    database = "assistantdemo"
+    username = "postgres"
+    password = var.alloydb_password
+  })
+}
+
 resource "null_resource" "cymbal_air_demo_fetch_and_config" {
   depends_on = [null_resource.cymbal_air_demo_exec_db_script,
                 google_project_iam_member.default_compute_sa_roles_expanded]
@@ -80,24 +102,25 @@ resource "null_resource" "cymbal_air_demo_fetch_and_config" {
       gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a \
       --tunnel-through-iap \
       --project ${google_project.demo-project.project_id} \
-      --command='export PGHOST=${google_alloydb_instance.primary_instance.ip_address}
-      export PGUSER=postgres
-      export PGPASSWORD=${var.alloydb_password}
+      --command='source pgauth.env
       sudo apt-get update
       sudo apt install -y python3.11-venv git
       python3 -m venv .venv
       source .venv/bin/activate
       pip install --upgrade pip
-      git clone --depth 1 --branch v0.1.0  https://github.com/GoogleCloudPlatform/genai-databases-retrieval-app.git
+      git clone --depth 1 --branch v0.1.0  https://github.com/GoogleCloudPlatform/genai-databases-retrieval-app.git'
+
+      gcloud compute scp config.yml ${var.clientvm-name}:~/genai-databases-retrieval-app/retrieval_service/ \
+      --zone=${var.region}-a \
+      --tunnel-through-iap \
+      --project ${google_project.demo-project.project_id}
+
+      gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a \
+      --tunnel-through-iap \
+      --project ${google_project.demo-project.project_id} \
+      --command='source pgauth.env
+      source .venv/bin/activate
       cd genai-databases-retrieval-app/retrieval_service
-      cp example-config-alloydb.yml config.yml
-      sed -i s/my-project/${google_project.demo-project.project_id}/g config.yml
-      sed -i s/my-region/${var.region}/g config.yml
-      sed -i s/my-cluster/${var.alloydb_cluster_name}/g config.yml
-      sed -i s/my-instance/${var.alloydb_primary_name}/g config.yml    
-      sed -i s/my-password/${var.alloydb_password}/g config.yml
-      sed -i s/my_database/assistantdemo/g config.yml
-      sed -i s/my-user/postgres/g config.yml
       sed -i s/PUBLIC/PRIVATE/g datastore/providers/alloydb.py
       cat config.yml
       pip install -r requirements.txt
@@ -112,7 +135,8 @@ resource "null_resource" "cymbal_air_demo_fetch_and_config" {
   #     --project ${google_project.demo-project.project_id} \
   #     --command='export PGHOST=${google_alloydb_instance.primary_instance.ip_address}
   #     export PGUSER=postgres
-  #     export PGPASSWORD=${var.alloydb_password}
+  #     export PGPASSWORD='${var.alloydb_password}'
+  #     export PGSSLMODE=require
   #     sudo apt install -y python3.11-venv git
   #     python3 -m venv .venv
   #     source .venv/bin/activate
@@ -196,6 +220,7 @@ resource "google_cloud_run_v2_service" "retrieval_service" {
   location   = var.region
   ingress    = "INGRESS_TRAFFIC_ALL"
   project    = google_project.demo-project.project_id
+  deletion_protection = false
   depends_on = [ null_resource.cymbal_air_build_retrieval_service ]
 
   template {
@@ -251,8 +276,10 @@ resource "google_project_service" "project_service" {
   service = "iap.googleapis.com"
 }
 
+data "google_client_openid_userinfo" "me" {}
+
 resource "google_iap_brand" "cymbal_air_demo_brand" {
-  support_email     = var.demo_app_support_email 
+  support_email     = data.google_client_openid_userinfo.me.email
   application_title = "Cymbal Air"
   project = google_project_service.project_service.project
 }

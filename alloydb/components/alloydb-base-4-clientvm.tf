@@ -26,7 +26,7 @@ resource "null_resource" "install_postgresql_client" {
     command = <<-EOT
       gcloud compute ssh ${var.clientvm-name} --zone=${var.region}-a --tunnel-through-iap \
       --project ${google_project.demo-project.project_id} --command='touch ~/.profile &&
-      sudo apt install postgresql-client -y &&
+      sudo apt update && sudo apt install postgresql-client -y &&
       echo "export PROJECT_ID=\${google_project.demo-project.project_id}" >> ~/.profile &&
       echo "export REGION=\${var.region}" >> ~/.profile &&
       echo "export ADBCLUSTER=\${var.alloydb_cluster_name}" >> ~/.profile &&
